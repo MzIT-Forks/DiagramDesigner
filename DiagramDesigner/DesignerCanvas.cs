@@ -118,6 +118,8 @@ namespace DiagramDesigner
                 newItem.Focus();
             }
 
+            ToolboxItem.LatestDragObject = null;
+
             return true;
         }
 
