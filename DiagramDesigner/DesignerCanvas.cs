@@ -29,7 +29,7 @@ namespace DiagramDesigner
         {
             base.OnMouseDown(e);
             OnMouseDownAction(e);
-            OnDropAction(e);
+            e.Handled = OnDropAction(ToolboxItem.LatestDragObject, e.GetPosition(this));
         }
 
         private void OnMouseDownAction(MouseButtonEventArgs e)
@@ -77,98 +77,48 @@ namespace DiagramDesigner
         protected override void OnDrop(DragEventArgs e)
         {
             base.OnDrop(e);
-            OnDropAction(e);
+            e.Handled = OnDropAction(e.Data.GetData(typeof(DragObject)) as DragObject, e.GetPosition(this));
         }
 
-        private void OnDropAction(DragEventArgs e)
+        private bool OnDropAction(DragObject dragObject, Point position)
         {
-            DragObject dragObject = e.Data.GetData(typeof(DragObject)) as DragObject;
-            if (dragObject != null && !string.IsNullOrEmpty(dragObject.Xaml))
+            if (dragObject == null) return false;
+            if (string.IsNullOrEmpty(dragObject.Xaml)) return false;
+
+            object content = XamlReader.Load(XmlReader.Create(new StringReader(dragObject.Xaml)));
+
+            if (content != null)
             {
-                DesignerItem newItem = null;
-                object content = XamlReader.Load(XmlReader.Create(new StringReader(dragObject.Xaml)));
-
-                if (content != null)
+                var newItem = new DesignerItem
                 {
-                    newItem = new DesignerItem
-                    {
-                        Content = content
-                    };
+                    Content = content
+                };
 
-                    Point position = e.GetPosition(this);
+                if (dragObject.DesiredSize.HasValue)
+                {
+                    Size desiredSize = dragObject.DesiredSize.Value;
+                    newItem.Width = desiredSize.Width;
+                    newItem.Height = desiredSize.Height;
 
-                    if (dragObject.DesiredSize.HasValue)
-                    {
-                        Size desiredSize = dragObject.DesiredSize.Value;
-                        newItem.Width = desiredSize.Width;
-                        newItem.Height = desiredSize.Height;
-
-                        DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X - newItem.Width / 2));
-                        DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y - newItem.Height / 2));
-                    }
-                    else
-                    {
-                        DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X));
-                        DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y));
-                    }
-
-                    Canvas.SetZIndex(newItem, Children.Count);
-                    Children.Add(newItem);
-                    SetConnectorDecoratorTemplate(newItem);
-
-                    //update selection
-                    SelectionService.SelectItem(newItem);
-                    newItem.Focus();
+                    DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X - newItem.Width / 2));
+                    DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y - newItem.Height / 2));
+                }
+                else
+                {
+                    DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X));
+                    DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y));
                 }
 
-                e.Handled = true;
+                Canvas.SetZIndex(newItem, Children.Count);
+                Children.Add(newItem);
+                SetConnectorDecoratorTemplate(newItem);
+
+                //update selection
+                SelectionService.SelectItem(newItem);
+                newItem.Focus();
             }
-        }
 
-        private void OnDropAction(MouseButtonEventArgs e)
-        {
-            // HACK: only this line changes
-            DragObject dragObject = ToolboxItem.LatestDragObject;
-            if (dragObject != null && !string.IsNullOrEmpty(dragObject.Xaml))
-            {
-                DesignerItem newItem = null;
-                object content = XamlReader.Load(XmlReader.Create(new StringReader(dragObject.Xaml)));
-
-                if (content != null)
-                {
-                    newItem = new DesignerItem
-                    {
-                        Content = content
-                    };
-
-                    Point position = e.GetPosition(this);
-
-                    if (dragObject.DesiredSize.HasValue)
-                    {
-                        Size desiredSize = dragObject.DesiredSize.Value;
-                        newItem.Width = desiredSize.Width;
-                        newItem.Height = desiredSize.Height;
-
-                        DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X - newItem.Width / 2));
-                        DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y - newItem.Height / 2));
-                    }
-                    else
-                    {
-                        DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X));
-                        DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y));
-                    }
-
-                    Canvas.SetZIndex(newItem, Children.Count);
-                    Children.Add(newItem);
-                    SetConnectorDecoratorTemplate(newItem);
-
-                    //update selection
-                    SelectionService.SelectItem(newItem);
-                    newItem.Focus();
-                }
-
-                e.Handled = true;
-            }
+            return true;
         }
 
         protected override Size MeasureOverride(Size constraint)
