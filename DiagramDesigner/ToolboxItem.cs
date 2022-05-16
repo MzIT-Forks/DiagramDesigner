@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Markup;
@@ -23,22 +22,29 @@ namespace DiagramDesigner
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
         {
             base.OnPreviewMouseDown(e);
-            this.dragStartPoint = new Point?(e.GetPosition(this));
+            dragStartPoint = new Point?(e.GetPosition(this));
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            if (e.LeftButton != MouseButtonState.Pressed)
-                this.dragStartPoint = null;
+            OnMouseMoveAction(e);
+        }
 
-            if (this.dragStartPoint.HasValue)
+        private void OnMouseMoveAction(MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+                dragStartPoint = null;
+
+            if (dragStartPoint.HasValue)
             {
                 // XamlWriter.Save() has limitations in exactly what is serialized,
                 // see SDK documentation; short term solution only;
-                string xamlString = XamlWriter.Save(this.Content);
-                DragObject dataObject = new DragObject();
-                dataObject.Xaml = xamlString;
+                string xamlString = XamlWriter.Save(Content);
+                DragObject dataObject = new DragObject
+                {
+                    Xaml = xamlString
+                };
 
                 WrapPanel panel = VisualTreeHelper.GetParent(this) as WrapPanel;
                 if (panel != null)
@@ -59,7 +65,7 @@ namespace DiagramDesigner
     public class DragObject
     {
         // Xaml string that represents the serialized content
-        public String Xaml { get; set; }
+        public string Xaml { get; set; }
 
         // Defines width and height of the DesignerItem
         // when this DragObject is dropped on the DesignerCanvas

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,11 +28,16 @@ namespace DiagramDesigner
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
+            OnMouseDownAction(e);
+        }
+
+        private void OnMouseDownAction(MouseButtonEventArgs e)
+        {
             if (e.Source == this)
             {
                 // in case that this click is the start of a 
                 // drag operation we cache the start point
-                this.rubberbandSelectionStartPoint = new Point?(e.GetPosition(this));
+                rubberbandSelectionStartPoint = new Point?(e.GetPosition(this));
 
                 // if you click directly on the canvas all 
                 // selected items are 'de-selected'
@@ -50,11 +53,11 @@ namespace DiagramDesigner
 
             // if mouse button is not pressed we have no drag operation, ...
             if (e.LeftButton != MouseButtonState.Pressed)
-                this.rubberbandSelectionStartPoint = null;
+                rubberbandSelectionStartPoint = null;
 
             // ... but if mouse button is pressed and start
             // point value is set we do have one
-            if (this.rubberbandSelectionStartPoint.HasValue)
+            if (rubberbandSelectionStartPoint.HasValue)
             {
                 // create rubberband adorner
                 AdornerLayer adornerLayer = AdornerLayer.GetAdornerLayer(this);
@@ -73,16 +76,23 @@ namespace DiagramDesigner
         protected override void OnDrop(DragEventArgs e)
         {
             base.OnDrop(e);
+            OnDropAction(e);
+        }
+
+        private void OnDropAction(DragEventArgs e)
+        {
             DragObject dragObject = e.Data.GetData(typeof(DragObject)) as DragObject;
-            if (dragObject != null && !String.IsNullOrEmpty(dragObject.Xaml))
+            if (dragObject != null && !string.IsNullOrEmpty(dragObject.Xaml))
             {
                 DesignerItem newItem = null;
-                Object content = XamlReader.Load(XmlReader.Create(new StringReader(dragObject.Xaml)));
+                object content = XamlReader.Load(XmlReader.Create(new StringReader(dragObject.Xaml)));
 
                 if (content != null)
                 {
-                    newItem = new DesignerItem();
-                    newItem.Content = content;
+                    newItem = new DesignerItem
+                    {
+                        Content = content
+                    };
 
                     Point position = e.GetPosition(this);
 
@@ -101,12 +111,12 @@ namespace DiagramDesigner
                         DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y));
                     }
 
-                    Canvas.SetZIndex(newItem, this.Children.Count);
-                    this.Children.Add(newItem);                    
+                    Canvas.SetZIndex(newItem, Children.Count);
+                    Children.Add(newItem);
                     SetConnectorDecoratorTemplate(newItem);
 
                     //update selection
-                    this.SelectionService.SelectItem(newItem);
+                    SelectionService.SelectItem(newItem);
                     newItem.Focus();
                 }
 
@@ -118,7 +128,7 @@ namespace DiagramDesigner
         {
             Size size = new Size();
 
-            foreach (UIElement element in this.InternalChildren)
+            foreach (UIElement element in InternalChildren)
             {
                 double left = Canvas.GetLeft(element);
                 double top = Canvas.GetTop(element);
