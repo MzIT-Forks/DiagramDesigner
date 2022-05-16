@@ -29,6 +29,7 @@ namespace DiagramDesigner
         {
             base.OnMouseDown(e);
             OnMouseDownAction(e);
+            OnDropAction(e);
         }
 
         private void OnMouseDownAction(MouseButtonEventArgs e)
@@ -82,6 +83,52 @@ namespace DiagramDesigner
         private void OnDropAction(DragEventArgs e)
         {
             DragObject dragObject = e.Data.GetData(typeof(DragObject)) as DragObject;
+            if (dragObject != null && !string.IsNullOrEmpty(dragObject.Xaml))
+            {
+                DesignerItem newItem = null;
+                object content = XamlReader.Load(XmlReader.Create(new StringReader(dragObject.Xaml)));
+
+                if (content != null)
+                {
+                    newItem = new DesignerItem
+                    {
+                        Content = content
+                    };
+
+                    Point position = e.GetPosition(this);
+
+                    if (dragObject.DesiredSize.HasValue)
+                    {
+                        Size desiredSize = dragObject.DesiredSize.Value;
+                        newItem.Width = desiredSize.Width;
+                        newItem.Height = desiredSize.Height;
+
+                        DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X - newItem.Width / 2));
+                        DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y - newItem.Height / 2));
+                    }
+                    else
+                    {
+                        DesignerCanvas.SetLeft(newItem, Math.Max(0, position.X));
+                        DesignerCanvas.SetTop(newItem, Math.Max(0, position.Y));
+                    }
+
+                    Canvas.SetZIndex(newItem, Children.Count);
+                    Children.Add(newItem);
+                    SetConnectorDecoratorTemplate(newItem);
+
+                    //update selection
+                    SelectionService.SelectItem(newItem);
+                    newItem.Focus();
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        private void OnDropAction(MouseButtonEventArgs e)
+        {
+            // HACK: only this line changes
+            DragObject dragObject = ToolboxItem.LatestDragObject;
             if (dragObject != null && !string.IsNullOrEmpty(dragObject.Xaml))
             {
                 DesignerItem newItem = null;

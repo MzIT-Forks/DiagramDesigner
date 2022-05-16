@@ -11,6 +11,7 @@ namespace DiagramDesigner
     {
         // caches the start point of the drag operation
         private Point? dragStartPoint = null;
+        public static DragObject LatestDragObject { get; set; } = null;
 
         static ToolboxItem()
         {
@@ -54,10 +55,18 @@ namespace DiagramDesigner
                     dataObject.DesiredSize = new Size(panel.ItemWidth * scale, panel.ItemHeight * scale);
                 }
 
+                LatestDragObject = dataObject;
+
                 DragDrop.DoDragDrop(this, dataObject, DragDropEffects.Copy);
 
                 e.Handled = true;
             }
+        }
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+            OnMouseMoveAction(e);
         }
     }
 
